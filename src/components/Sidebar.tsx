@@ -10,7 +10,7 @@ export default function Sidebar({ onLogout }: Props) {
       <div className="sidebar-brand">
         <img src="/logo-mm-pescados.png" alt="Mm Pescados" className="sidebar-logo" />
       </div>
-      <div className="sidebar-user">Olá, Gabriel Rosa</div>
+      <div className="sidebar-user">Teste</div>
       <nav className="sidebar-nav">
         <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/dashboard">
           <span className="nav-icon">
@@ -19,6 +19,14 @@ export default function Sidebar({ onLogout }: Props) {
             </svg>
           </span>
           Dashboard
+        </NavLink>
+        <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/produtos">
+          <span className="nav-icon">
+            <svg viewBox="0 0 24 24">
+              <path d="M3 6h18v4H3zm0 6h18v6H3z" />
+            </svg>
+          </span>
+          Produtos
         </NavLink>
         <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/pedidos">
           <span className="nav-icon">
@@ -69,7 +77,7 @@ export default function Sidebar({ onLogout }: Props) {
           Sair
         </button>
       </nav>
-      <div className="sidebar-footer">© 2024 BMM Pescados</div>
+      <div className="sidebar-footer">© 2024 MM Pescados</div>
     </aside>
   )
 }

@@ -7,6 +7,7 @@ import Orders from '../pages/Orders'
 import Users from '../pages/Users'
 import Stock from '../pages/Stock'
 import Reports from '../pages/Reports'
+import Products from '../pages/Products'
 
 type Props = {
   onLogout?: () => void
@@ -20,6 +21,7 @@ export default function Dashboard({ onLogout }: Props) {
       <main className="dash-main">
         <Routes>
           <Route path="/dashboard" element={<DashboardHome />} />
+          <Route path="/produtos" element={<Products />} />
           <Route path="/pedidos" element={<Orders />} />
           <Route path="/clientes" element={<Clients />} />
           <Route path="/usuarios" element={<Users />} />
