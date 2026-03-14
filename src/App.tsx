@@ -5,9 +5,9 @@ import Dashboard from './components/Dashboard'
 import Login from './components/Login'
 
 function App() {
-  const VALID_USERNAME = 'bmm'
-  const VALID_PASSWORD = 'pescados'
   const AUTH_KEY = 'mm-auth-logged'
+  const AUTH_USER_KEY = 'mm-auth-user'
+  const USERS_KEY = 'mm-users'
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -22,12 +22,31 @@ function App() {
       setError('Informe email e senha')
       return
     }
-    if (username !== VALID_USERNAME || password !== VALID_PASSWORD) {
-      setError('Usuário ou senha inválidos')
-      return
+    try {
+      const raw = localStorage.getItem(USERS_KEY)
+      let users = raw ? (JSON.parse(raw) as Array<{ email: string; password: string; name: string; role?: string; status?: string }>) : []
+      
+      // Se não houver usuários no localStorage, usa os padrões para garantir o login funcional
+      if (users.length === 0) {
+        users = [
+          { name: 'Gabriel Rosa', email: 'gabriel@mm.com.br', password: '********', role: 'Colaborador', status: 'Ativo' },
+          { name: 'Ana Martins', email: 'ana@mm.com.br', password: '********', role: 'Administrador', status: 'Ativo' },
+        ]
+        localStorage.setItem(USERS_KEY, JSON.stringify(users))
+      }
+
+      const email = username.trim().toLowerCase()
+      const found = users.find((u) => u.email?.toLowerCase() === email && u.password === password && (u.status ?? 'Ativo') === 'Ativo')
+      if (!found) {
+        setError('Usuário ou senha inválidos')
+        return
+      }
+      setLoggedIn(true)
+      localStorage.setItem(AUTH_KEY, 'true')
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify({ name: found.name, email: found.email, role: found.role ?? 'Colaborador' }))
+    } catch {
+      setError('Falha ao validar login')
     }
-    setLoggedIn(true)
-    localStorage.setItem(AUTH_KEY, 'true')
   }
 
   return (
@@ -42,6 +61,7 @@ function App() {
               <Dashboard
                 onLogout={() => {
                   localStorage.removeItem(AUTH_KEY)
+                  localStorage.removeItem(AUTH_USER_KEY)
                   setLoggedIn(false)
                 }}
               />

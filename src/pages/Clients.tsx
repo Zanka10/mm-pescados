@@ -10,7 +10,10 @@ type Client = {
 const initialClients: Client[] = []
 
 export default function Clients() {
-  const [items, setItems] = useState<Client[]>(initialClients)
+  const [items, setItems] = useState<Client[]>(() => {
+    const stored = localStorage.getItem('mm-clients')
+    return stored ? (JSON.parse(stored) as Client[]) : initialClients
+  })
   const [search, setSearch] = useState('')
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
@@ -50,10 +53,12 @@ export default function Clients() {
   }
 
   function remove(index: number) {
+    if (!confirm('Deseja realmente excluir este cliente?')) return
     const globalIndex = (page - 1) * pageSize + index
     const next = items.slice()
     next.splice(globalIndex, 1)
     setItems(next)
+    localStorage.setItem('mm-clients', JSON.stringify(next))
   }
 
   function submitForm(e: React.FormEvent) {
@@ -66,6 +71,7 @@ export default function Clients() {
       next[editingIndex] = form
     }
     setItems(next)
+    localStorage.setItem('mm-clients', JSON.stringify(next))
     setModalOpen(false)
   }
 

@@ -5,12 +5,20 @@ type Props = {
 }
 
 export default function Sidebar({ onLogout }: Props) {
+  const authUser = (() => {
+    try {
+      const raw = localStorage.getItem('mm-auth-user')
+      return raw ? JSON.parse(raw) as { name?: string; email?: string; role?: string } : null
+    } catch {
+      return null
+    }
+  })()
   return (
     <aside className="dash-sidebar">
       <div className="sidebar-brand">
         <img src="/logo-mm-pescados.png" alt="Mm Pescados" className="sidebar-logo" />
       </div>
-      <div className="sidebar-user">Teste</div>
+      <div className="sidebar-user">{authUser?.name ?? 'Usuário'}</div>
       <nav className="sidebar-nav">
         <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/dashboard">
           <span className="nav-icon">
@@ -52,14 +60,7 @@ export default function Sidebar({ onLogout }: Props) {
           </span>
           Usuários
         </NavLink>
-        <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/estoque">
-          <span className="nav-icon">
-            <svg viewBox="0 0 24 24">
-              <path d="M4 6h16v12H4zM2 4h20v16H2z" />
-            </svg>
-          </span>
-          Estoque
-        </NavLink>
+
         <NavLink className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`} to="/relatorios">
           <span className="nav-icon">
             <svg viewBox="0 0 24 24">

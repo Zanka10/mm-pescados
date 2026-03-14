@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-type Product = {
+export type Product = {
   name: string
   price: number
   promoPrice?: number
@@ -22,14 +22,39 @@ const initialProducts: Product[] = [
 ]
 
 export default function Products() {
-  const [items, setItems] = useState<Product[]>(initialProducts)
+  const [items, setItems] = useState<Product[]>(() => {
+    const stored = localStorage.getItem('mm-product-images')
+    const map = stored ? (JSON.parse(stored) as Record<string, string>) : {}
+    return initialProducts.map((p) => ({ ...p, image: map[p.name] ?? p.image }))
+  })
   const [search, setSearch] = useState('')
-  const [category, setCategory] = useState<'Todas' | 'Peixe' | 'Frutos do mar'>('Todas')
+  const [categories, setCategories] = useState<string[]>(() => {
+    const raw = localStorage.getItem('mm-product-categories')
+    if (raw) return JSON.parse(raw) as string[]
+    
+    // Fallback: extrair categorias dos produtos iniciais se não houver no localStorage
+    const initialCats = Array.from(new Set(initialProducts.map(p => p.category)))
+    return initialCats.length > 0 ? initialCats : ['Peixe', 'Frutos do mar']
+  })
+  const [category, setCategory] = useState<string>('Todas')
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [form, setForm] = useState<Product>({ name: '', price: 0, category: 'Peixe', stockKg: 0, minStockKg: 0 })
+  const [addingCategory, setAddingCategory] = useState(false)
+  const [newCategory, setNewCategory] = useState('')
+
+  useEffect(() => {
+    const imgs: Record<string, string> = {}
+    for (const p of items) {
+      if (p.image) imgs[p.name] = p.image
+    }
+    localStorage.setItem('mm-product-images', JSON.stringify(imgs))
+  }, [items])
+  useEffect(() => {
+    localStorage.setItem('mm-product-categories', JSON.stringify(categories))
+  }, [categories])
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -49,35 +74,65 @@ export default function Products() {
     return filtered.slice(start, start + pageSize)
   }, [filtered, page, pageSize])
 
+  useEffect(() => {
+    const tp = Math.max(1, Math.ceil(filtered.length / pageSize))
+    if (page > tp) setPage(tp)
+  }, [filtered, pageSize])
   function openAdd() {
     setEditingIndex(null)
     setForm({ name: '', price: 0, promoPrice: undefined, category: 'Peixe', stockKg: 0, minStockKg: 0 })
     setModalOpen(true)
   }
 
-  function openEdit(index: number) {
-    const globalIndex = (page - 1) * pageSize + index
+  function openEdit(indexInCurrent: number) {
+    const product = current[indexInCurrent]
+    if (!product) return
+
+    // Encontrar o índice no array original 'items' para edição
+    const globalIndex = items.findIndex((p) => p.name === product.name)
+    if (globalIndex === -1) return
+
     setEditingIndex(globalIndex)
     setForm(items[globalIndex])
     setModalOpen(true)
   }
 
-  function remove(index: number) {
-    const globalIndex = (page - 1) * pageSize + index
-    const next = items.slice()
-    next.splice(globalIndex, 1)
-    setItems(next)
+  function remove(indexInCurrent: number) {
+    if (!confirm('Deseja realmente excluir este produto?')) return
+
+    const productToRemove = current[indexInCurrent]
+    if (!productToRemove) return
+
+    setItems((prevItems) => prevItems.filter((item) => item.name !== productToRemove.name))
   }
 
-  function setPhoto(index: number, file: File) {
+  function setPhoto(indexInCurrent: number, file: File) {
     const reader = new FileReader()
     reader.onload = () => {
-      const globalIndex = (page - 1) * pageSize + index
+      const product = current[indexInCurrent]
+      if (!product) return
+
+      const globalIndex = items.findIndex((p) => p.name === product.name)
+      if (globalIndex === -1) return
+
       const next = items.slice()
       next[globalIndex] = { ...next[globalIndex], image: reader.result as string }
       setItems(next)
     }
     reader.readAsDataURL(file)
+  }
+
+  function removePhoto(indexInCurrent: number) {
+    if (!confirm('Deseja realmente remover a foto deste produto?')) return
+    const product = current[indexInCurrent]
+    if (!product) return
+
+    const globalIndex = items.findIndex((p) => p.name === product.name)
+    if (globalIndex === -1) return
+
+    const next = items.slice()
+    next[globalIndex] = { ...next[globalIndex], image: undefined }
+    setItems(next)
   }
   // Imagens foram substituídas por ícones nos cards da tabela
 
@@ -143,13 +198,15 @@ export default function Products() {
           Categoria
           <select
             value={category}
-            onChange={(e) =>
-              setCategory(e.target.value as 'Todas' | 'Peixe' | 'Frutos do mar')
-            }
+            onChange={(e) => {
+              setCategory(e.target.value)
+              setPage(1)
+            }}
           >
             <option>Todas</option>
-            <option>Peixe</option>
-            <option>Frutos do mar</option>
+            {categories.map((c) => (
+              <option key={c}>{c}</option>
+            ))}
           </select>
         </label>
       </div>
@@ -166,8 +223,8 @@ export default function Products() {
             <div className="th col-actions">Ações</div>
           </div>
           {current.map((p, idx) => (
-            <div className="table-row" key={p.name + idx}>
-              <div className="td col-prod">
+              <div className="table-row" key={p.name}>
+                <div className="td col-prod">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div
                     className="product-avatar"
@@ -186,6 +243,20 @@ export default function Products() {
                         <path d="M3 12c4-6 14-6 18 0-4 6-14 6-18 0zm7 0a2 2 0 1 0 2-2 2 2 0 0 0-2 2z" />
                       </svg>
                     )}
+                    {p.image && (
+                      <button
+                        className="avatar-remove"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removePhoto(idx)
+                        }}
+                        title="Remover foto"
+                      >
+                        <svg viewBox="0 0 24 24">
+                          <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                   <input
                     type="file"
@@ -200,7 +271,7 @@ export default function Products() {
                   <div className="td-title">{p.name}</div>
                 </div>
               </div>
-              <div className="td col-cat">{p.category === 'Peixe' ? 'Peixes' : 'Frutos do Mar'}</div>
+              <div className="td col-cat">{p.category}</div>
               <div className="td col-qty">
                 <span style={{ color: p.stockKg <= 0 ? '#ff6b6b' : p.stockKg < p.minStockKg ? '#f2c94c' : '#cfd6e3' }}>
                   {p.stockKg} kg
@@ -302,13 +373,48 @@ export default function Products() {
               </label>
               <label className="modal-field">
                 <span>Categoria</span>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                >
-                  <option>Peixe</option>
-                  <option>Frutos do mar</option>
-                </select>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <select
+                    value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                    style={{ flex: 1 }}
+                  >
+                    {categories.map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
+                  {!addingCategory ? (
+                    <button type="button" className="button" onClick={() => setAddingCategory(true)}>
+                      Nova
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8, flex: 1 }}>
+                      <input
+                        placeholder="Nome da categoria"
+                        value={newCategory}
+                        onChange={(e) => setNewCategory(e.target.value)}
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="button button-success"
+                        onClick={() => {
+                          const c = newCategory.trim()
+                          if (!c) return
+                          if (!categories.includes(c)) setCategories([...categories, c])
+                          setForm({ ...form, category: c })
+                          setNewCategory('')
+                          setAddingCategory(false)
+                        }}
+                      >
+                        Adicionar
+                      </button>
+                      <button type="button" className="button" onClick={() => { setAddingCategory(false); setNewCategory('') }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  )}
+                </div>
               </label>
               <label className="modal-field">
                 <span>Estoque (kg)</span>

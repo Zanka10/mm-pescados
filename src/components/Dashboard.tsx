@@ -5,7 +5,6 @@ import Clients from '../pages/Clients'
 import DashboardHome from '../pages/DashboardHome'
 import Orders from '../pages/Orders'
 import Users from '../pages/Users'
-import Stock from '../pages/Stock'
 import Reports from '../pages/Reports'
 import Products from '../pages/Products'
 
@@ -25,7 +24,6 @@ export default function Dashboard({ onLogout }: Props) {
           <Route path="/pedidos" element={<Orders />} />
           <Route path="/clientes" element={<Clients />} />
           <Route path="/usuarios" element={<Users />} />
-          <Route path="/estoque" element={<Stock />} />
           <Route path="/relatorios" element={<Reports />} />
         </Routes>
       </main>
