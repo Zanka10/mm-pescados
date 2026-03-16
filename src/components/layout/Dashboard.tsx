@@ -1,12 +1,13 @@
 import { Route, Routes } from 'react-router-dom'
-import './Dashboard.css'
+import '../../assets/styles/Dashboard.css'
 import Sidebar from './Sidebar'
-import Clients from '../pages/Clients'
-import DashboardHome from '../pages/DashboardHome'
-import Orders from '../pages/Orders'
-import Users from '../pages/Users'
-import Reports from '../pages/Reports'
-import Products from '../pages/Products'
+import Clients from '../../pages/admin/Clients'
+import DashboardHome from '../../pages/admin/DashboardHome'
+import Orders from '../../pages/admin/Orders'
+import Users from '../../pages/admin/Users'
+import Reports from '../../pages/admin/Reports'
+import Products from '../../pages/admin/Products'
+import { storageService } from '../../services/storage.service'
 
 type Props = {
   onLogout?: () => void

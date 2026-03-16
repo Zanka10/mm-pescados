@@ -1,18 +1,17 @@
 import { useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import './App.css'
-import Dashboard from './components/Dashboard'
-import Login from './components/Login'
+import './assets/styles/App.css'
+import Dashboard from './components/layout/Dashboard'
+import Login from './components/admin/Login'
+import Shop from './pages/shop/Shop'
+import { storageService } from './services/storage.service'
+import type { User } from './types'
 
 function App() {
-  const AUTH_KEY = 'mm-auth-logged'
-  const AUTH_USER_KEY = 'mm-auth-user'
-  const USERS_KEY = 'mm-users'
-
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [loggedIn, setLoggedIn] = useState(() => localStorage.getItem(AUTH_KEY) === 'true')
+  const [loggedIn, setLoggedIn] = useState(() => storageService.isAuthenticated())
   const [showPassword, setShowPassword] = useState(false)
 
   function handleSubmit(e: React.FormEvent) {
@@ -23,27 +22,25 @@ function App() {
       return
     }
     try {
-      const raw = localStorage.getItem(USERS_KEY)
-      let users = raw ? (JSON.parse(raw) as Array<{ email: string; password: string; name: string; role?: string; status?: string }>) : []
+      const raw = localStorage.getItem('mm-users')
+      let users = raw ? (JSON.parse(raw) as User[]) : []
       
-      // Se não houver usuários no localStorage, usa os padrões para garantir o login funcional
       if (users.length === 0) {
         users = [
           { name: 'Gabriel Rosa', email: 'gabriel@mm.com.br', password: '********', role: 'Colaborador', status: 'Ativo' },
           { name: 'Ana Martins', email: 'ana@mm.com.br', password: '********', role: 'Administrador', status: 'Ativo' },
         ]
-        localStorage.setItem(USERS_KEY, JSON.stringify(users))
+        localStorage.setItem('mm-users', JSON.stringify(users))
       }
 
       const email = username.trim().toLowerCase()
-      const found = users.find((u) => u.email?.toLowerCase() === email && u.password === password && (u.status ?? 'Ativo') === 'Ativo')
+      const found = users.find((u) => u.email?.toLowerCase() === email && u.password === password && u.status === 'Ativo')
       if (!found) {
         setError('Usuário ou senha inválidos')
         return
       }
       setLoggedIn(true)
-      localStorage.setItem(AUTH_KEY, 'true')
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify({ name: found.name, email: found.email, role: found.role ?? 'Colaborador' }))
+      storageService.setAuth(true, { name: found.name, email: found.email, role: found.role })
     } catch {
       setError('Falha ao validar login')
     }
@@ -51,30 +48,13 @@ function App() {
 
   return (
     <BrowserRouter>
-      {loggedIn ? (
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-          <Route
-            path="/*"
-            element={
-              <Dashboard
-                onLogout={() => {
-                  localStorage.removeItem(AUTH_KEY)
-                  localStorage.removeItem(AUTH_USER_KEY)
-                  setLoggedIn(false)
-                }}
-              />
-            }
-          />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      ) : (
-        <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route
-            path="/login"
-            element={
+      <Routes>
+        <Route path="/loja" element={<Shop />} />
+        
+        {/* Rotas de Autenticação */}
+        {!loggedIn ? (
+          <>
+            <Route path="/login" element={
               <Login
                 username={username}
                 password={password}
@@ -85,11 +65,27 @@ function App() {
                 onTogglePassword={() => setShowPassword((v) => !v)}
                 onSubmit={handleSubmit}
               />
-            }
-          />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      )}
+            } />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </>
+        ) : (
+          <>
+            <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="/*"
+              element={
+                <Dashboard
+                  onLogout={() => {
+                    storageService.logout()
+                    setLoggedIn(false)
+                  }}
+                />
+              }
+            />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          </>
+        )}
+      </Routes>
     </BrowserRouter>
   )
 }

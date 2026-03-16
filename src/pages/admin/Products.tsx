@@ -1,36 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-
-export type Product = {
-  name: string
-  price: number
-  promoPrice?: number
-  category: string
-  stockKg: number
-  image?: string
-  minStockKg: number
-}
-
-const initialProducts: Product[] = [
-  { name: 'Filé de salmão', price: 79.9, promoPrice: 69.9, category: 'Peixe', stockKg: 25, minStockKg: 15 },
-  { name: 'Filé de tilápia', price: 24.9, promoPrice: 0, category: 'Peixe', stockKg: 120, minStockKg: 20 },
-  { name: 'Camarão 1kg', price: 89.9, promoPrice: 0, category: 'Frutos do mar', stockKg: 35, minStockKg: 10 },
-  { name: 'Lula Congelada', price: 34.5, promoPrice: 0, category: 'Frutos do mar', stockKg: 0, minStockKg: 5 },
-  { name: 'Bacalhau', price: 62.0, promoPrice: 0, category: 'Peixe', stockKg: 50, minStockKg: 15 },
-  { name: 'Sardinha', price: 12.9, promoPrice: 0, category: 'Peixe', stockKg: 200, minStockKg: 30 },
-  { name: 'Polvo', price: 45.0, promoPrice: 0, category: 'Frutos do mar', stockKg: 8, minStockKg: 20 },
-  { name: 'Filé de Merluza', price: 32.9, promoPrice: 0, category: 'Peixe', stockKg: 0, minStockKg: 10 },
-]
+import { initialProducts } from '../../data/initialData'
+import type { Product } from '../../types'
+import { storageService } from '../../services/storage.service'
+import { useProducts } from '../../hooks/admin/useProducts'
+import { formatCurrency } from '../../utils/formatters'
 
 export default function Products() {
-  const [items, setItems] = useState<Product[]>(() => {
-    const stored = localStorage.getItem('mm-product-images')
-    const map = stored ? (JSON.parse(stored) as Record<string, string>) : {}
-    return initialProducts.map((p) => ({ ...p, image: map[p.name] ?? p.image }))
-  })
+  const { products: items, setProducts: setItems } = useProducts()
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState<string[]>(() => {
-    const raw = localStorage.getItem('mm-product-categories')
-    if (raw) return JSON.parse(raw) as string[]
+    const raw = storageService.getCategories()
+    if (raw.length > 0) return raw
     
     // Fallback: extrair categorias dos produtos iniciais se não houver no localStorage
     const initialCats = Array.from(new Set(initialProducts.map(p => p.category)))
@@ -41,19 +21,12 @@ export default function Products() {
   const [page, setPage] = useState(1)
   const [modalOpen, setModalOpen] = useState(false)
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const [form, setForm] = useState<Product>({ name: '', price: 0, category: 'Peixe', stockKg: 0, minStockKg: 0 })
+  const [form, setForm] = useState<Product>({ name: '', price: 0, category: 'Peixe', stockKg: 0, minStockKg: 0, isPromo: false })
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategory, setNewCategory] = useState('')
 
   useEffect(() => {
-    const imgs: Record<string, string> = {}
-    for (const p of items) {
-      if (p.image) imgs[p.name] = p.image
-    }
-    localStorage.setItem('mm-product-images', JSON.stringify(imgs))
-  }, [items])
-  useEffect(() => {
-    localStorage.setItem('mm-product-categories', JSON.stringify(categories))
+    storageService.setCategories(categories)
   }, [categories])
 
   const filtered = useMemo(() => {
@@ -156,7 +129,7 @@ export default function Products() {
   }
 
   function formatPrice(v: number) {
-    return `R$ ${v.toFixed(2).replace('.', ',')}/kg`
+    return formatCurrency(v)
   }
 
   return (
@@ -371,6 +344,16 @@ export default function Products() {
                   }
                 />
               </label>
+              <div className="modal-field promo-toggle-field">
+                <label className="promo-toggle">
+                  <input
+                    type="checkbox"
+                    checked={form.isPromo || false}
+                    onChange={(e) => setForm({ ...form, isPromo: e.target.checked })}
+                  />
+                  <span className="promo-toggle-text">Ativar Oferta na Loja</span>
+                </label>
+              </div>
               <label className="modal-field">
                 <span>Categoria</span>
                 <div style={{ display: 'flex', gap: 8 }}>

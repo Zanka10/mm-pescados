@@ -111,6 +111,15 @@ body {
   font-size: 13px;
 }
 
+/* Fix para preenchimento automático (autofill) */
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover, 
+.login-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--login-input-text) !important;
+  -webkit-box-shadow: 0 0 0px 1000px var(--login-input-bg) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 .with-icon {
   padding-left: 36px;
 }

@@ -161,11 +161,63 @@ select option {
   border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px;
   padding: 10px 12px; outline: none;
 }
+
+/* Fix para preenchimento automático (autofill) */
+.modal-field input:-webkit-autofill,
+.modal-field input:-webkit-autofill:hover, 
+.modal-field input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #cfd6e3 !important;
+  -webkit-box-shadow: 0 0 0px 1000px #0f1321 inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
 .modal-field select option {
   background: #0f1321;
   color: #cfd6e3;
 }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.promo-toggle-field {
+  padding: 10px 0;
+}
+.promo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.promo-toggle input[type="checkbox"] {
+  width: 40px;
+  height: 20px;
+  appearance: none;
+  background: #3a4155;
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+}
+.promo-toggle input[type="checkbox"]:checked {
+  background: #129e62;
+}
+.promo-toggle input[type="checkbox"]::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: white;
+  border-radius: 50%;
+  top: 2px;
+  left: 2px;
+  transition: all 0.3s;
+}
+.promo-toggle input[type="checkbox"]:checked::before {
+  left: 22px;
+}
+.promo-toggle-text {
+  font-size: 14px;
+  color: #cfd6e3;
+  font-weight: 600;
+}
 .order-items-selector { margin-bottom: 8px; }
 .selected-items-list {
   background: rgba(255, 255, 255, 0.03);

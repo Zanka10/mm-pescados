@@ -1,34 +1,10 @@
 import { useMemo, useState } from 'react'
-
-type OrderStatus = 'Pendente' | 'Em andamento' | 'Concluido' | 'Cancelado'
-type Payment = 'Cartão' | 'Dinheiro' | 'Pix' | 'Pend.'
-export type OrderItem = {
-  productName: string
-  quantity: number
-  price: number
-}
-
-export type Order = {
-  id: number
-  clientName: string
-  clientPhone: string
-  date: number
-  createdAt: number
-  total: number
-  payment: Payment
-  status: OrderStatus
-  items?: OrderItem[]
-}
-
-const now = Date.now()
-const day = 24 * 60 * 60 * 1000
-const initialOrders: Order[] = []
+import type { Order, OrderStatus, Payment } from '../../types'
+import { storageService } from '../../services/storage.service'
+import { formatCurrency, formatTime, formatDate } from '../../utils/formatters'
 
 export default function Orders() {
-  const [items, setItems] = useState<Order[]>(() => {
-    const stored = localStorage.getItem('mm-orders')
-    return stored ? (JSON.parse(stored) as Order[]) : initialOrders
-  })
+  const [items, setItems] = useState<Order[]>(() => storageService.getOrders())
   const [search, setSearch] = useState('')
   const [statusTab, setStatusTab] = useState<'Todos' | OrderStatus>('Todos')
   const [period, setPeriod] = useState<'Hoje' | 'Últimos 7 dias' | 'Últimos 30 dias' | 'Todos'>('Últimos 7 dias')
@@ -45,16 +21,17 @@ export default function Orders() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
+    const now = Date.now()
+    const day = 24 * 60 * 60 * 1000
     const startDate =
       period === 'Hoje' ? new Date().setHours(0, 0, 0, 0) :
       period === 'Últimos 7 dias' ? now - 7 * day :
       period === 'Últimos 30 dias' ? now - 30 * day : 0
     return items.filter((o) => {
       const matchesSearch =
-        !q ||
-        String(o.id).includes(q) ||
         o.clientName.toLowerCase().includes(q) ||
-        o.status.toLowerCase().includes(q)
+        o.clientPhone.toLowerCase().includes(q) ||
+        o.id.toString().includes(q)
       const matchesStatus = statusTab === 'Todos' || o.status === statusTab
       const matchesPeriod = o.date >= startDate
       return matchesSearch && matchesStatus && matchesPeriod
@@ -69,28 +46,11 @@ export default function Orders() {
 
   const totalAmount = useMemo(() => filtered.reduce((acc, o) => acc + o.total, 0), [filtered])
 
-  function formatCurrency(v: number) {
-    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-  }
-
-  function formatDate(ts: number) {
-    const diff = Math.floor((now - ts) / day)
-    if (diff <= 0) return 'Hoje'
-    if (diff === 1) return 'Ontem'
-    return `${diff} dias`
-  }
-  function formatTime(ts: number) {
-    const d = new Date(ts)
-    const hh = String(d.getHours()).padStart(2, '0')
-    const mm = String(d.getMinutes()).padStart(2, '0')
-    return `${hh}:${mm}`
-  }
-
   function remove(id: number) {
     if (!confirm('Deseja realmente excluir este pedido?')) return
     const next = items.filter(o => o.id !== id)
     setItems(next)
-    localStorage.setItem('mm-orders', JSON.stringify(next))
+    storageService.setOrders(next)
   }
 
   function submitForm(e: React.FormEvent) {
@@ -111,7 +71,7 @@ export default function Orders() {
 
     const next = [newOrder, ...items]
     setItems(next)
-    localStorage.setItem('mm-orders', JSON.stringify(next))
+    storageService.setOrders(next)
     setModalOpen(false)
     setForm({ clientName: '', clientPhone: '', total: 0, payment: 'Pix', status: 'Pendente' })
   }
